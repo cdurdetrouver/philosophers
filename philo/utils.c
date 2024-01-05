@@ -5,36 +5,66 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: gbazart <gabriel.bazart@gmail.com>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/19 18:59:16 by gbazart           #+#    #+#             */
-/*   Updated: 2023/12/19 18:59:24 by gbazart          ###   ########.fr       */
+/*   Created: 2024/01/01 16:47:53 by gbazart           #+#    #+#             */
+/*   Updated: 2024/01/05 02:23:01 by gbazart          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
+#include <time.h>
 
-long	ft_atol(const char *str)
+size_t	get_time(void)
 {
-	long	num;
-	int		isneg;
-	int		i;
+	struct timeval	time;
 
-	num = 0;
-	isneg = 1;
+	if (gettimeofday(&time, NULL) == -1)
+		write(2, "gettimeofday() error\n", 22);
+	return (time.tv_sec * 1000 + time.tv_usec / 1000);
+}
+
+int	ft_usleep(size_t milliseconds)
+{
+	size_t	start;
+
+	if (milliseconds <= 0)
+		return (0);
+	start = get_time();
+	while ((get_time() - start) < milliseconds)
+		usleep(500);
+	return (0);
+}
+
+int	ft_strcmp(const char *s1, const char *s2)
+{
+	int	i;
+
 	i = 0;
-	while (str[i] && (str[i] == ' ' || str[i] == '\t' || str[i] == '\n'
-			|| str[i] == '\r' || str[i] == '\v' || str[i] == '\f'))
+	while (s1[i] && s2[i] && s1[i] == s2[i])
 		i++;
-	if (str[i] == '+')
-		i++;
-	else if (str[i] == '-')
-	{
-		isneg *= -1;
-		i++;
-	}
+	return (s1[i] - s2[i]);
+}
+
+bool	ft_isdigit(char *str)
+{
+	int	i;
+
+	i = -1;
+	while (str[++i])
+		if (str[i] < '0' || str[i] > '9')
+			return (false);
+	return (true);
+}
+
+long int	ft_atol(char *str)
+{
+	long int	res;
+	int			i;
+
+	res = 0;
+	i = 0;
+	while (str[i] == ' ' || (str[i] >= 9 && str[i] <= 13))
+		++i;
 	while (str[i] >= '0' && str[i] <= '9')
-	{
-		num = (num * 10) + (str[i] - '0');
-		i++;
-	}
-	return (num * isneg);
+		res = res * 10 + (str[i++] - '0');
+	return (res);
 }

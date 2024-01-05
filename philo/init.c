@@ -5,53 +5,28 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: gbazart <gabriel.bazart@gmail.com>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/19 18:57:44 by gbazart           #+#    #+#             */
-/*   Updated: 2023/12/19 19:39:03 by gbazart          ###   ########.fr       */
+/*   Created: 2024/01/01 16:22:36 by gbazart           #+#    #+#             */
+/*   Updated: 2024/01/05 02:45:06 by gbazart          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	ft_parse(t_data *data, int argc, char **argv)
-{
-	data->nb_philo = ft_atol(argv[1]);
-	if (data->nb_philo > 200)
-		ft_error("Too many philosophers\n");
-	data->time_to_die = ft_atol(argv[2]);
-	data->time_to_eat = ft_atol(argv[3]);
-	data->time_to_sleep = ft_atol(argv[4]);
-	data->max_meal = -1;
-	if (argc == 6)
-		data->max_meal = ft_atol(argv[5]);
-	if (data->time_to_die < 60 || data->time_to_eat < 60
-		|| data->time_to_sleep < 60)
-		ft_error("Time must be greater than 60ms\n");
-}
-
-void	ft_philo_init(t_data *data)
-{
-	int		i;
-	t_philo	*philo;
-
-	i = -1;
-	while (++i < data->nb_philo)
-	{
-		philo = data->philo + i;
-		philo->id = i + 1;
-		philo->full = false;
-		philo->nb_meal = 0;
-		philo->data = data;
-		assign_forks(philo, data->forks, i);
-	};
-}
-
-void	ft_data_init(t_data *data)
+int	ft_data_init(t_data *data)
 {
 	int	i;
 
+	data->start = get_time();
 	data->end = false;
-	data->philo = safe_malloc(data->nb_philo * sizeof(t_philo));
-	data->forks = safe_malloc(data->nb_philo * sizeof(t_fork));
+	data->done = 0;
+	data->wait = true;
+	data->philo = malloc(sizeof(t_philo) * data->nb_philo);
+	data->forks = malloc(sizeof(pthread_mutex_t) * data->nb_philo);
+	if (!data->philo || !data->forks)
+		return (printf("Malloc error\n"), 1);
+	i = -1;
+	while (++i < data->nb_philo)
+		pthread_mutex_init(&data->forks[i], NULL);
 	i = -1;
 	while (++i < data->nb_philo)
 	{
@@ -59,9 +34,34 @@ void	ft_data_init(t_data *data)
 		data->philo[i].nb_meal = 0;
 		data->philo[i].last_meal = data->start;
 		data->philo[i].full = false;
-		data->philo[i].data = data;
 		data->philo[i].left_fork = &data->forks[i];
 		data->philo[i].right_fork = &data->forks[(i + 1) % data->nb_philo];
-		pthread_mutex_init(&data->forks[i].fork, NULL);
+		data->philo[i].data = data;
 	}
+	return (0);
+}
+
+int	ft_parse(t_data *data, int argc, char **argv)
+{
+	int	i;
+
+	i = 0;
+	while (++i < argc)
+	{
+		if (!ft_isdigit(argv[i]))
+			return (printf("Arguments must be positive numbers\n"), 1);
+	}
+	if (ft_atol(argv[1]) > 200)
+		return (printf("Too many philosophers\n"), 1);
+	if (ft_atol(argv[2]) < 60 || ft_atol(argv[3]) < 60 || ft_atol(argv[4]) < 60)
+		return (printf("Time must be at least 60ms\n"), 1);
+	data->nb_philo = ft_atol(argv[1]);
+	data->time_to_die = ft_atol(argv[2]);
+	data->time_to_eat = ft_atol(argv[3]);
+	data->time_to_sleep = ft_atol(argv[4]);
+	if (argc == 6)
+		data->max_meal = ft_atol(argv[5]);
+	else
+		data->max_meal = -1;
+	return (0);
 }

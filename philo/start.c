@@ -5,46 +5,109 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: gbazart <gabriel.bazart@gmail.com>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/19 19:05:35 by gbazart           #+#    #+#             */
-/*   Updated: 2023/12/19 19:41:42 by gbazart          ###   ########.fr       */
+/*   Created: 2024/01/02 16:29:16 by gbazart           #+#    #+#             */
+/*   Updated: 2024/01/05 03:41:43 by gbazart          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	start(t_data *data)
+void	eat(t_philo *philo)
+{
+	pthread_mutex_lock(philo->left_fork);
+	print_status(philo, "has taken a fork");
+	pthread_mutex_lock(philo->right_fork);
+	print_status(philo, "has taken a fork");
+	print_status(philo, "is eating");
+	philo->last_meal = get_time();
+	philo->nb_meal++;
+	ft_usleep(philo->data->time_to_eat);
+	pthread_mutex_unlock(philo->left_fork);
+	pthread_mutex_unlock(philo->right_fork);
+}
+
+void	sleeping(t_philo *philo)
+{
+	print_status(philo, "is sleeping");
+	ft_usleep(philo->data->time_to_sleep);
+}
+
+void	*routine(void *arg)
+{
+	t_philo	*philo;
+
+	philo = (t_philo *)arg;
+	while (philo->data->wait)
+		;
+	philo->last_meal = get_time();
+	if (philo->id % 2 == 0 || philo->id == philo->data->nb_philo)
+	{
+		print_status(philo, "is thinking");
+		ft_usleep((philo->data->time_to_eat * 2 - philo->data->time_to_sleep)
+			* 0.42);
+	}
+	while (!philo->data->end && !philo->full)
+	{
+		eat(philo);
+		sleeping(philo);
+		print_status(philo, "is thinking");
+		ft_usleep((philo->data->time_to_eat * 2 - philo->data->time_to_sleep)
+			* 0.42);
+	}
+	return (NULL);
+}
+
+void	*check(void *arg)
+{
+	t_data	*data;
+	int		i;
+
+	data = (t_data *)arg;
+	while (data->wait)
+		;
+	while (!data->end)
+	{
+		i = -1;
+		while (++i < data->nb_philo && !data->end)
+		{
+			if (get_time() - data->philo[i].last_meal > data->time_to_die)
+				return (print_status(&data->philo[i], "died"), data->end = true,
+					NULL);
+			if (data->philo[i].nb_meal == data->max_meal
+				&& !data->philo[i].full)
+			{
+				data->done++;
+				data->philo[i].full = true;
+			}
+			if (data->done == data->nb_philo)
+				return (data->end = true, NULL);
+		}
+	}
+	return (NULL);
+}
+
+int	start(t_data *data)
 {
 	int	i;
 
-	i = 0;
-	while (i < data->nb_philo)
+	i = -1;
+	while (++i < data->nb_philo)
 	{
-		data->philo[i].id = i + 1;
-		data->philo[i].data = data;
-		data->philo[i].last_meal = 0;
-		data->philo[i].nb_meal = 0;
-		data->philo[i].is_eating = false;
-		pthread_mutex_init(&data->forks[i], NULL);
-		if (i % 2 == 0)
-			pthread_mutex_lock(&data->forks[i]);
-		i++;
+		if (pthread_create(&data->philo[i].thread, NULL, &routine,
+				&data->philo[i]))
+			return (printf("Error: pthread_create\n"), 1);
 	}
-	i = 0;
-	while (i < data->nb_philo)
+	if (pthread_create(&data->check, NULL, &check, data))
+		return (printf("Error: pthread_create\n"), 1);
+	data->start = get_time();
+	data->wait = false;
+	i = -1;
+	while (++i < data->nb_philo)
 	{
-		pthread_create(&data->philo[i].thread, NULL, &routine, &data->philo[i]);
-		i++;
+		if (pthread_join(data->philo[i].thread, NULL))
+			return (printf("Error: pthread_join\n"), 1);
 	}
-	i = 0;
-	while (i < data->nb_philo)
-	{
-		pthread_join(data->philo[i].thread, NULL);
-		i++;
-	}
-	i = 0;
-	while (i < data->nb_philo)
-	{
-		pthread_mutex_destroy(&data->forks[i]);
-		i++;
-	}
+	if (pthread_join(data->check, NULL))
+		return (printf("Error: pthread_join\n"), 1);
+	return (0);
 }

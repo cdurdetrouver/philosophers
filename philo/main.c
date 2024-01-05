@@ -6,7 +6,7 @@
 /*   By: gbazart <gabriel.bazart@gmail.com>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/19 17:00:35 by gbazart           #+#    #+#             */
-/*   Updated: 2023/12/19 19:31:43 by gbazart          ###   ########.fr       */
+/*   Updated: 2024/01/05 00:49:30 by gbazart          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,10 +17,17 @@ int	main(int argc, char **argv)
 	t_data	data;
 
 	if (argc < 5 || argc > 6)
-		ft_error("Wrong number of arguments\n");
-	ft_parse(&data, argc, argv);
-	ft_data_init(&data);
-	start(&data);
-	clean(&data);
-	return (0);
+		return (printf("Wrong number of arguments\n"), 1);
+	if (ft_parse(&data, argc, argv))
+		return (1);
+	if (ft_data_init(&data))
+		return (clean(&data), 1);
+	if (data.nb_philo > 1)
+	{
+		if (start(&data))
+			return (clean(&data), 1);
+	}
+	else
+		start1(&data);
+	return (clean(&data), 0);
 }
