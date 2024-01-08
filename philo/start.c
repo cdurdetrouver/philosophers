@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   start.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gbazart <gabriel.bazart@gmail.com>         +#+  +:+       +#+        */
+/*   By: gbazart <gbazart@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/01/02 16:29:16 by gbazart           #+#    #+#             */
-/*   Updated: 2024/01/05 03:41:43 by gbazart          ###   ########.fr       */
+/*   Updated: 2024/01/06 18:33:09 by gbazart          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,19 +17,15 @@ void	eat(t_philo *philo)
 	pthread_mutex_lock(philo->left_fork);
 	print_status(philo, "has taken a fork");
 	pthread_mutex_lock(philo->right_fork);
+	philo->is_eating = true;
 	print_status(philo, "has taken a fork");
 	print_status(philo, "is eating");
 	philo->last_meal = get_time();
 	philo->nb_meal++;
+	philo->is_eating = false;
 	ft_usleep(philo->data->time_to_eat);
 	pthread_mutex_unlock(philo->left_fork);
 	pthread_mutex_unlock(philo->right_fork);
-}
-
-void	sleeping(t_philo *philo)
-{
-	print_status(philo, "is sleeping");
-	ft_usleep(philo->data->time_to_sleep);
 }
 
 void	*routine(void *arg)
@@ -43,44 +39,56 @@ void	*routine(void *arg)
 	if (philo->id % 2 == 0 || philo->id == philo->data->nb_philo)
 	{
 		print_status(philo, "is thinking");
-		ft_usleep((philo->data->time_to_eat * 2 - philo->data->time_to_sleep)
-			* 0.42);
+		ft_usleep(50);
 	}
 	while (!philo->data->end && !philo->full)
 	{
 		eat(philo);
-		sleeping(philo);
+		print_status(philo, "is sleeping");
+		ft_usleep(philo->data->time_to_sleep);
 		print_status(philo, "is thinking");
-		ft_usleep((philo->data->time_to_eat * 2 - philo->data->time_to_sleep)
-			* 0.42);
 	}
 	return (NULL);
 }
 
-void	*check(void *arg)
+int	foreachphilo(int i, t_data *data)
+{
+	if (get_time() - data->philo[i].last_meal > data->time_to_die
+		&& !data->philo[i].is_eating)
+	{
+		print_status(&data->philo[i], "died");
+		data->end = true;
+		return (1);
+	}
+	if (data->philo[i].nb_meal == data->max_meal && !data->philo[i].full)
+	{
+		data->done++;
+		data->philo[i].full = true;
+	}
+	if (data->done == data->nb_philo)
+	{
+		data->end = true;
+		return (1);
+	}
+	return (0);
+}
+
+void	*check(void *args)
 {
 	t_data	*data;
 	int		i;
 
-	data = (t_data *)arg;
+	data = (t_data *)args;
 	while (data->wait)
 		;
+	ft_usleep(50);
 	while (!data->end)
 	{
 		i = -1;
 		while (++i < data->nb_philo && !data->end)
 		{
-			if (get_time() - data->philo[i].last_meal > data->time_to_die)
-				return (print_status(&data->philo[i], "died"), data->end = true,
-					NULL);
-			if (data->philo[i].nb_meal == data->max_meal
-				&& !data->philo[i].full)
-			{
-				data->done++;
-				data->philo[i].full = true;
-			}
-			if (data->done == data->nb_philo)
-				return (data->end = true, NULL);
+			if (foreachphilo(i, data))
+				return (NULL);
 		}
 	}
 	return (NULL);

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   init.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gbazart <gabriel.bazart@gmail.com>         +#+  +:+       +#+        */
+/*   By: gbazart <gbazart@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/01/01 16:22:36 by gbazart           #+#    #+#             */
-/*   Updated: 2024/01/05 02:45:06 by gbazart          ###   ########.fr       */
+/*   Updated: 2024/01/06 17:46:38 by gbazart          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,11 +32,11 @@ int	ft_data_init(t_data *data)
 	{
 		data->philo[i].id = i + 1;
 		data->philo[i].nb_meal = 0;
-		data->philo[i].last_meal = data->start;
 		data->philo[i].full = false;
 		data->philo[i].left_fork = &data->forks[i];
 		data->philo[i].right_fork = &data->forks[(i + 1) % data->nb_philo];
 		data->philo[i].data = data;
+		data->philo[i].is_eating = false;
 	}
 	return (0);
 }
